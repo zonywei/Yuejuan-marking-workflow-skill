@@ -1,0 +1,7 @@
+interface:
+  display_name: "Zhixue Marking Workflow"
+  short_description: "Zhixue and web grading workflow."
+  default_prompt: "Use $zhixue-marking-workflow to prepare, explore, run, recover, or report a Zhixue or similar web grading workflow."
+
+policy:
+  allow_implicit_invocation: true

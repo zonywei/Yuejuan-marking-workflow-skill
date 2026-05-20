@@ -1,0 +1,13 @@
+{
+  "markingPaperId": "replace-with-marking-paper-id",
+  "topicNumStr": "14,-1",
+  "referer": "https://www.zhixue.com/webmarking/replace/#/marking/personal/?isArbitration=false&markingPaperId=replace-with-marking-paper-id",
+  "cookie": "replace-with-browser-cookie-header",
+  "outDir": "./zhixue_work",
+  "blankThreshold": 0.01,
+  "blankAutoThreshold": 0.01,
+  "blankReviewThreshold": 0.015,
+  "answerAreaStartFraction": 0.18,
+  "answerAreaAutoThreshold": 0.004,
+  "answerAreaReviewThreshold": 0.008
+}

@@ -1,0 +1,13 @@
+{
+  "title": "Sample Short-Answer Question",
+  "subject": "Social Studies",
+  "gradeLevel": "High School",
+  "problemText": "Explain one major cause of the event described in the source material and describe one consequence of that cause.",
+  "referenceAnswer": "A valid answer identifies a relevant cause from the source material, supports it with accurate evidence, and explains a connected consequence.",
+  "totalPoints": 6,
+  "subquestionPoints": {
+    "cause": 3,
+    "consequence": 3
+  },
+  "teacherConstraints": "Accept different valid causes when they are supported by accurate evidence. Award partial credit for relevant but incomplete explanations."
+}

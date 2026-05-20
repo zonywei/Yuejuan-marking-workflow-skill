@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+
+zhixue_work/
+scripts/zhixue_work/
+scripts/zhixue_mark.config.json
+
+.env
+*.local
+*.log
