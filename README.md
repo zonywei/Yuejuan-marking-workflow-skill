@@ -128,6 +128,49 @@ English example:
 Use $zhixue-marking-workflow to prepare a rubric, grading prompt, and review workflow for this subjective question.
 ```
 
+## Skill 商店发布信息 / Marketplace Listing
+
+推荐标题 / Recommended title:
+
+```text
+Yuejuan Marking Workflow Skill
+```
+
+一句话介绍 / Short description:
+
+```text
+面向教师的主观题阅卷工作流：整理评分标准、辅助批量评分、复核对账，并生成教学反馈报告。
+```
+
+```text
+A teacher-focused workflow for subjective-question grading: prepare rubrics, assist batch scoring, reconcile results, and generate teaching feedback reports.
+```
+
+推荐分类 / Suggested category:
+
+```text
+Education, Productivity, AI Agents
+```
+
+关键词 / Keywords:
+
+```text
+teacher, education, grading, marking, rubric, subjective questions, AI-assisted grading, web grading platform, Zhixue, reconciliation, teacher reports
+```
+
+较适合发布的平台 / Good marketplace targets:
+
+- agentskill.sh: accepts a GitHub repository or direct `SKILL.md` URL and can auto-sync from GitHub.
+- SkillHQ: suitable if you want a paid listing, CLI install, validation, and marketplace revenue.
+- Codex Plugin Marketplace: suitable for Codex users; if direct standalone-skill review requires a `skills/<skill-name>/` tree, submit the GitHub repository URL for manual review or publish a wrapper layout later.
+- GitHub: keep this repository as the canonical public source, release archive, issue tracker, and installation reference.
+
+建议商业策略 / Suggested commercial strategy:
+
+- Keep the open-source repo free to maximize trust and adoption.
+- Use paid marketplace listing, custom platform adapters, school/education-company setup, rubric tuning, and report-template services as the monetizable layer.
+- For a paid SkillHQ listing, start with a low paid price such as `9` to `19` EUR/USD, then adjust after real installs or service leads.
+
 ## 典型使用场景 / Typical Use Cases
 
 - 教师上传题目、参考答案和分值，Codex 帮助生成评分标准草稿。
