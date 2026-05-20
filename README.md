@@ -160,8 +160,8 @@ teacher, education, grading, marking, rubric, subjective questions, AI-assisted 
 
 较适合发布的平台 / Good marketplace targets:
 
-- agentskill.sh: accepts a GitHub repository or direct `SKILL.md` URL and can auto-sync from GitHub.
-- SkillHQ: suitable if you want a paid listing, CLI install, validation, and marketplace revenue.
+- agentskill.sh: published at `https://agentskill.sh/zonywei/yuejuan-marking-workflow-skill`.
+- SkillHQ: published at `https://skillhq.dev/skills/user_0404bb5c/zhixue-marking-workflow`.
 - Codex Plugin Marketplace: suitable for Codex users; if direct standalone-skill review requires a `skills/<skill-name>/` tree, submit the GitHub repository URL for manual review or publish a wrapper layout later.
 - GitHub: keep this repository as the canonical public source, release archive, issue tracker, and installation reference.
 
