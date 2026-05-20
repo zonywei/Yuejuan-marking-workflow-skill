@@ -293,6 +293,6 @@ py -3 -B -m py_compile .\scripts\build_prompt_pack.py .\scripts\zhixue_mark.py
 
 ## 许可证 / License
 
-当前尚未选择开源许可证。在添加许可证前，复用范围受 GitHub 托管源码的默认版权规则限制。
+本项目使用 MIT License。你可以使用、修改、分发和商业使用本项目，但需要保留版权声明和许可证文本。
 
-No open-source license has been selected yet. Until a license is added, reuse is limited by the default copyright rules of GitHub-hosted source code.
+This project is licensed under the MIT License. You may use, modify, distribute, and use it commercially, provided that the copyright notice and license text are preserved.
