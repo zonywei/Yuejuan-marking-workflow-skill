@@ -70,20 +70,6 @@ flowchart LR
 - 你需要一套评分标准、证据、复核队列、对账、报告的模板。
 - 你需要智学网优先的适配器，但又不想把项目锁死在单一平台。
 
-## 为什么不能只让人工智能裸打分
-
-直接把学生答案丢给模型并要求“给个分”很危险。它可能在不同答卷之间标准不一致，可能漏掉隐藏评分规则，可能过度相信不清晰的手写内容，也可能给出后续无法复核的分数。
-
-本项目不是回避人工智能判分，而是把人工智能判分放进可控流程里：
-
-- 教师与人工智能共同整理评分参考标准，教师确认后再批量使用。
-- 每个分数都要有理由和证据。
-- 低置信度、边界卷、疑似空白卷进入复核队列。
-- 本地记录和平台提交状态要对账。
-- 真实提交或重提分数前需要教师确认。
-
-目标是减少教师重复判分劳动，让人工智能负责大批量草评分，让教师把精力放在评分标准、边界卷、争议卷和最终把关上。
-
 ## 快速开始
 
 ### 方式一：不安装，先看示例
@@ -426,20 +412,6 @@ The teacher-facing report further summarizes:
 - You are evaluating AI scoring but do not want rubric-free, unauditable black-box grading.
 - You need a template for rubric, evidence, review queue, reconciliation, and report generation.
 - You want a Zhixue-first adapter without locking the whole project to one platform.
-
-## Why Not Just Ask AI To Grade Without A Workflow?
-
-Directly asking AI to "grade this answer" is risky. It can be inconsistent across papers, miss hidden score rules, over-trust unclear handwriting, or produce scores that cannot be audited later.
-
-This project does not avoid AI scoring. It puts AI scoring inside a controlled workflow:
-
-- Teachers and AI co-develop the scoring reference rubric, and the teacher confirms it before batch use.
-- Every score should keep a reason and evidence.
-- Low-confidence, borderline, and suspected blank papers go to a review queue.
-- Local records and platform submission status must be reconciled.
-- Real submissions or score corrections require teacher confirmation.
-
-The goal is to reduce repetitive teacher scoring labor. AI handles large-volume draft scoring; teachers focus on rubric quality, borderline cases, disputed papers, and final control.
 
 ## Quickstart
 
