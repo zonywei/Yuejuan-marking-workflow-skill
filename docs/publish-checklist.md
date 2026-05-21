@@ -5,7 +5,7 @@ Use this checklist before promoting the repository on GitHub, skill directories,
 ## GitHub Homepage
 
 - [ ] README has a one-sentence positioning statement.
-- [ ] README explains that this is AI-assisted, teacher-confirmed, reviewable marking.
+- [ ] README explains that AI handles repetitive draft scoring, while rubric quality, risky cases, and submission gates remain reviewable.
 - [ ] README shows a 30-second table: input, output, value, scenario, boundaries.
 - [ ] README links to a concrete demo example.
 - [ ] README has installation commands.
@@ -47,4 +47,3 @@ teaching
 - [ ] No secrets or real student data appear in `git status` or staged files.
 - [ ] Quickstart is honest. Do not claim one-click platform automation unless it exists.
 - [ ] Published listings point to the current GitHub repository.
-

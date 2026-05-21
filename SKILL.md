@@ -1,6 +1,6 @@
 ---
 name: zhixue-marking-workflow
-description: Use when working on Zhixue teacher-side subjective-question grading or adapting the same workflow to similar authenticated web grading platforms, including rubric preparation, backend workflow exploration, batch grading, AI-assisted scoring, ledger recovery, reconciliation, and teacher-facing reports.
+description: Use when working on Zhixue teacher-side subjective-question grading or adapting the same workflow to similar authenticated web grading platforms, including rubric preparation, backend workflow exploration, batch grading, AI draft scoring, ledger recovery, reconciliation, and teacher-facing reports.
 ---
 
 # Zhixue Marking Workflow

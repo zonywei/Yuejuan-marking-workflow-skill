@@ -25,7 +25,7 @@
 
 ## 这个示例说明了什么
 
-- 工作流从教师材料开始，而不是从一句模糊的“帮我打分”开始。
+- 工作流从教师材料开始，让人工智能承担重复性草评分，而不是从一句模糊的“帮我打分”开始。
 - 评分标准说明每个得分点如何给分、如何扣分。
 - 模型提示词要求输出结构化结果、评分理由、置信度和复核标记。
 - 低置信度卷在最终处理前会被分离出来。
@@ -35,7 +35,7 @@
 
 - 不向真实平台提交任何内容。
 - 不使用真实答题图片或真实学生记录。
-- 不证明人工智能可以脱离教师复核独立阅卷。
+- 不声称人工智能可以在没有评分标准、复核节点和提交确认的情况下完成正式阅卷。
 - 不替代平台适配、安全检查或教师确认。
 
 ## 用智能体试一下
@@ -77,7 +77,7 @@ This demo shows the complete input-output path of the skill using a fictional hi
 
 ## What This Demo Proves
 
-- The workflow starts from teacher materials, not from a vague "grade this" request.
+- The workflow starts from teacher materials and lets AI handle repetitive draft scoring, instead of starting from a vague "grade this" request.
 - The rubric explains what earns points and what does not.
 - The model prompt asks for structured JSON, reasons, confidence, and review flags.
 - Low-confidence cases are separated before final handling.
@@ -87,7 +87,7 @@ This demo shows the complete input-output path of the skill using a fictional hi
 
 - It does not submit anything to a real platform.
 - It does not use real answer images or real student records.
-- It does not prove that AI can grade without teacher review.
+- It does not claim that AI should finalize official grading without a rubric, review checkpoints, and submission confirmation.
 - It does not replace platform-specific safety checks or teacher confirmation.
 
 ## Try It With An Agent

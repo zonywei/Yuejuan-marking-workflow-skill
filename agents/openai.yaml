@@ -1,7 +1,7 @@
 interface:
   display_name: "Yuejuan Marking Workflow"
-  short_description: "Teacher-focused grading workflow."
-  default_prompt: "Use $zhixue-marking-workflow to help a teacher prepare, run, recover, or report a subjective-question grading workflow."
+  short_description: "AI draft scoring workflow for teachers."
+  default_prompt: "Use $zhixue-marking-workflow to prepare rubrics, run AI draft scoring, review risky cases, reconcile results, or report a subjective-question grading workflow."
 
 policy:
   allow_implicit_invocation: true
