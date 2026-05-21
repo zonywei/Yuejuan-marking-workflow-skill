@@ -1,26 +1,28 @@
 # AI Subjective Question Marking Workflow for Teachers
 
-## 面向教师的 AI 主观题阅卷工作流 Skill
+## Yuejuan Marking Workflow Skill / 面向教师的 AI 主观题阅卷工作流 Skill
 
-Project name: **Yuejuan Marking Workflow Skill**. The installed skill name remains `$zhixue-marking-workflow` for compatibility with existing agent setups.
+Turn subjective-question marking into a controlled workflow:
 
-中文一句话定位：这是一个 `SKILL.md` Agent Skill，帮助教师把主观题阅卷拆成 `rubric 评分标准 -> prompt pack -> AI 辅助评分 -> 低置信度复核 -> 对账 -> 教师阅卷报告`。
-
-English one-liner: A `SKILL.md` agent skill that helps teachers turn subjective-question marking into `rubric -> prompt pack -> AI-assisted scoring -> low-confidence review -> reconciliation -> teacher-facing report`.
+```text
+Question + Answer Key -> Rubric -> Prompt Pack -> AI-assisted Draft Scores -> Review Queue -> Reconciliation -> Teacher Report
+```
 
 > This project does not replace teacher judgment. It helps teachers build a repeatable, reviewable, and auditable grading workflow.
 >
 > 本项目不是让 AI 代替教师判分，而是帮助教师把阅卷流程做得更稳定、可复核、可追踪。
 
-## 30 秒理解
+The installed skill name remains `$zhixue-marking-workflow` for compatibility, but the workflow is no longer limited to Zhixue. Zhixue is the first adapter; the reusable part is the marking workflow.
+
+## 30-Second Version
 
 | 项目 | What it means |
 | --- | --- |
-| 输入 | 题目、参考答案、分值、小问拆分、学生答案文本/图片、评分要求 |
-| 输出 | 评分标准、模型阅卷 prompt、结构化评分结果、低置信度复核列表、教师阅卷报告 |
-| 核心价值 | 评分一致性、证据留存、人工复核、提交对账、减少重复劳动 |
-| 适用场景 | 主观题、计算题、简答题、网页登录阅卷平台、批量评分复核 |
-| 不适用 | 无教师确认的自动判分、绕过平台权限、人机验证绕过、真实隐私数据公开提交 |
+| Who it is for | Teachers, teaching teams, AI agent developers, education product teams |
+| Input | Question, answer key, score allocation, student answer text/images, grading rules |
+| Output | Rubric, grading prompt, structured draft scores, review queue, teacher report |
+| Why it matters | More consistent scoring, visible evidence, reviewable edge cases, auditable submission flow |
+| What it is not | Unattended auto-grading, CAPTCHA bypass, permission bypass, or a place to store real student data |
 
 ```mermaid
 flowchart LR
@@ -31,6 +33,54 @@ flowchart LR
     E --> F[Reconciliation Ledger]
     F --> G[Teacher-facing Report]
 ```
+
+## See The Demo First
+
+No install is needed to understand the project. Start here:
+
+- Demo tour: [`examples/physics-subjective-question/README.md`](examples/physics-subjective-question/README.md)
+- Question: [`question.md`](examples/physics-subjective-question/question.md)
+- Rubric: [`generated-rubric.md`](examples/physics-subjective-question/generated-rubric.md)
+- Model prompt: [`model-grading-prompt.md`](examples/physics-subjective-question/model-grading-prompt.md)
+- Sample structured output: [`sample-grading-output.json`](examples/physics-subjective-question/sample-grading-output.json)
+- Teacher report: [`teacher-report.md`](examples/physics-subjective-question/teacher-report.md)
+
+The demo is a fictional high-school physics problem about long-distance power transmission. It contains no real student data, cookies, tokens, images, or platform ledger.
+
+### Output Preview
+
+```json
+{
+  "paper_id": "paper-phy-002",
+  "total_score": 6,
+  "max_score": 12,
+  "common_error_tags": [
+    "kv-conversion-error",
+    "carried-forward-current-error"
+  ],
+  "review_required": false
+}
+```
+
+Teacher-facing report output includes:
+
+- score overview
+- key difficulty points
+- common errors
+- high-score answer patterns
+- zero-score / low-confidence analysis
+- teaching suggestions
+- marking suggestions
+
+## Why Star This Repo?
+
+Star it if you care about any of these:
+
+- You are a teacher and want a safer way to use AI in subjective marking.
+- You are building an AI agent skill and need a real education workflow example.
+- You are evaluating AI-assisted grading but do not want black-box auto-scoring.
+- You need a template for rubric, evidence, review queue, reconciliation, and report generation.
+- You want a Zhixue-first adapter without locking the whole project to one platform.
 
 ## Why Not Just Ask AI To Grade?
 
@@ -46,21 +96,15 @@ This project treats AI as an assistant inside a teacher-controlled workflow:
 
 The goal is not unattended grading. The goal is a stable workflow that makes teacher review faster and safer.
 
-## 5 分钟 Demo
-
-Open the fictional physics example:
-
-- [`examples/physics-subjective-question/question.md`](examples/physics-subjective-question/question.md)
-- [`examples/physics-subjective-question/generated-rubric.md`](examples/physics-subjective-question/generated-rubric.md)
-- [`examples/physics-subjective-question/model-grading-prompt.md`](examples/physics-subjective-question/model-grading-prompt.md)
-- [`examples/physics-subjective-question/sample-grading-output.json`](examples/physics-subjective-question/sample-grading-output.json)
-- [`examples/physics-subjective-question/teacher-report.md`](examples/physics-subjective-question/teacher-report.md)
-
-The example is fully fictional and contains no real student data, images, cookies, tokens, or platform ledger.
-
 ## Quickstart / 快速使用
 
-1. Clone this repository into the skill directory used by your agent.
+### Option A: Read The Demo Without Installing
+
+Open [`examples/physics-subjective-question/README.md`](examples/physics-subjective-question/README.md) and follow the files in order.
+
+### Option B: Install As A Skill
+
+Clone this repository into the skill directory used by your agent.
 
 Codex on Windows:
 
@@ -81,13 +125,13 @@ git clone https://github.com/zonywei/Yuejuan-marking-workflow-skill.git ~/.codex
 git clone https://github.com/zonywei/Yuejuan-marking-workflow-skill.git ~/.claude/skills/zhixue-marking-workflow
 ```
 
-2. Invoke the skill in a compatible agent.
+Then invoke the skill in a compatible agent:
 
 ```text
 Use $zhixue-marking-workflow 帮我根据 examples/physics-subjective-question 里的题目、答案和样例学生答案，整理评分标准、模型阅卷 prompt、复核队列和教师报告。
 ```
 
-3. Use the example files as input to your agent.
+Use the example files as input to your agent.
 
 This repository includes helper scripts, but it does not pretend to provide a one-click grading system for every platform. For the demo, read the example files and ask your agent to produce or compare:
 
@@ -97,7 +141,7 @@ This repository includes helper scripts, but it does not pretend to provide a on
 - `review-queue.md`
 - `teacher-report.md`
 
-4. For real grading, replace the example with your own teacher-approved materials and keep all student data outside the repository.
+For real grading, replace the example with your own teacher-approved materials and keep all student data outside the repository.
 
 ## Install / 安装方式
 
