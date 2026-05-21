@@ -1,7 +1,5 @@
 # 面向教师的人工智能主观题阅卷工作流技能
 
-仓库项目名保留为 `Yuejuan-marking-workflow-skill`，技能调用名保留为 `$zhixue-marking-workflow`。名称兼容早期智学网场景，但项目定位已经扩展为通用网页登录阅卷平台工作流。智学网是第一个适配器，不是唯一使用场景。
-
 把主观题阅卷变成一个可控制的流程：
 
 ```text
@@ -358,8 +356,6 @@ py -3 -B -m py_compile .\scripts\build_prompt_pack.py .\scripts\zhixue_mark.py
 ---
 
 # AI Subjective Question Marking Workflow for Teachers
-
-Repository name: `Yuejuan-marking-workflow-skill`. Installed skill name: `$zhixue-marking-workflow`. The name is kept for compatibility with the original Zhixue workflow, but the project is now positioned as a general web-based marking workflow. Zhixue is the first adapter, not the only use case.
 
 Turn subjective-question marking into a controlled workflow:
 
