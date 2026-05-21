@@ -1,0 +1,115 @@
+[
+  {
+    "paper_id": "paper-phy-001",
+    "total_score": 12,
+    "max_score": 12,
+    "parts": [
+      {
+        "part": "1",
+        "score": 4,
+        "max_score": 4,
+        "reason": "Uses P = UI, converts units correctly, and gives both 480 A and 12 A.",
+        "low_confidence": false,
+        "review_required": false
+      },
+      {
+        "part": "2",
+        "score": 5,
+        "max_score": 5,
+        "reason": "Uses I^2R with 12 A, calculates 2.88 kW loss, received power, and 97.6% efficiency.",
+        "low_confidence": false,
+        "review_required": false
+      },
+      {
+        "part": "3",
+        "score": 3,
+        "max_score": 3,
+        "reason": "Correctly shows low-voltage loss is much larger than source power and explains high-voltage transmission using reduced current and I^2R loss.",
+        "low_confidence": false,
+        "review_required": false
+      }
+    ],
+    "common_error_tags": [],
+    "overall_reason": "Complete method, correct calculations, and clear physical explanation.",
+    "low_confidence": false,
+    "review_required": false
+  },
+  {
+    "paper_id": "paper-phy-002",
+    "total_score": 6,
+    "max_score": 12,
+    "parts": [
+      {
+        "part": "1",
+        "score": 3,
+        "max_score": 4,
+        "reason": "Formula and generator-side current are correct, but 10 kV is treated as 1000 V, so the transmission current is wrong.",
+        "low_confidence": false,
+        "review_required": false
+      },
+      {
+        "part": "2",
+        "score": 1,
+        "max_score": 5,
+        "reason": "Uses I^2R, but carries forward the wrong transmission current, so loss and efficiency are wrong.",
+        "low_confidence": false,
+        "review_required": false
+      },
+      {
+        "part": "3",
+        "score": 2,
+        "max_score": 3,
+        "reason": "Explains that low-voltage current is large and high voltage reduces loss, but does not calculate the no-step-up loss.",
+        "low_confidence": false,
+        "review_required": false
+      }
+    ],
+    "common_error_tags": [
+      "kv-conversion-error",
+      "carried-forward-current-error",
+      "missing-no-step-up-loss"
+    ],
+    "overall_reason": "Main physical idea is partly understood, but a kV conversion error affects later calculations.",
+    "low_confidence": false,
+    "review_required": false
+  },
+  {
+    "paper_id": "paper-phy-003",
+    "total_score": 0,
+    "max_score": 12,
+    "parts": [
+      {
+        "part": "1",
+        "score": 0,
+        "max_score": 4,
+        "reason": "No scorable formula, calculation, or answer.",
+        "low_confidence": true,
+        "review_required": true
+      },
+      {
+        "part": "2",
+        "score": 0,
+        "max_score": 5,
+        "reason": "Blank response.",
+        "low_confidence": true,
+        "review_required": true
+      },
+      {
+        "part": "3",
+        "score": 0,
+        "max_score": 3,
+        "reason": "Statement is off-topic for the required explanation and conflicts with the physics of long-distance transmission.",
+        "low_confidence": true,
+        "review_required": true
+      }
+    ],
+    "common_error_tags": [
+      "blank-or-near-blank",
+      "off-topic-explanation"
+    ],
+    "overall_reason": "Near-blank answer with no valid scoring evidence. Route to teacher review before any final handling.",
+    "low_confidence": true,
+    "review_required": true
+  }
+]
+

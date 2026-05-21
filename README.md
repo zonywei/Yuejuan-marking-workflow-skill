@@ -1,4 +1,121 @@
-# Yuejuan Marking Workflow Skill / 阅卷工作流 Skill
+# AI Subjective Question Marking Workflow for Teachers
+
+## 面向教师的 AI 主观题阅卷工作流 Skill
+
+Project name: **Yuejuan Marking Workflow Skill**. The installed skill name remains `$zhixue-marking-workflow` for compatibility with existing agent setups.
+
+中文一句话定位：这是一个 `SKILL.md` Agent Skill，帮助教师把主观题阅卷拆成 `rubric 评分标准 -> prompt pack -> AI 辅助评分 -> 低置信度复核 -> 对账 -> 教师阅卷报告`。
+
+English one-liner: A `SKILL.md` agent skill that helps teachers turn subjective-question marking into `rubric -> prompt pack -> AI-assisted scoring -> low-confidence review -> reconciliation -> teacher-facing report`.
+
+> This project does not replace teacher judgment. It helps teachers build a repeatable, reviewable, and auditable grading workflow.
+>
+> 本项目不是让 AI 代替教师判分，而是帮助教师把阅卷流程做得更稳定、可复核、可追踪。
+
+## 30 秒理解
+
+| 项目 | What it means |
+| --- | --- |
+| 输入 | 题目、参考答案、分值、小问拆分、学生答案文本/图片、评分要求 |
+| 输出 | 评分标准、模型阅卷 prompt、结构化评分结果、低置信度复核列表、教师阅卷报告 |
+| 核心价值 | 评分一致性、证据留存、人工复核、提交对账、减少重复劳动 |
+| 适用场景 | 主观题、计算题、简答题、网页登录阅卷平台、批量评分复核 |
+| 不适用 | 无教师确认的自动判分、绕过平台权限、人机验证绕过、真实隐私数据公开提交 |
+
+```mermaid
+flowchart LR
+    A[Question + Answer Key + Score Allocation] --> B[Rubric / Scoring Atoms]
+    B --> C[Prompt Pack]
+    C --> D[Batch AI-assisted Scoring]
+    D --> E[Review Queue]
+    E --> F[Reconciliation Ledger]
+    F --> G[Teacher-facing Report]
+```
+
+## Why Not Just Ask AI To Grade?
+
+Directly asking AI to "grade this answer" is risky. It can be inconsistent across papers, miss hidden score rules, over-trust unclear handwriting, or produce scores that cannot be audited later.
+
+This project treats AI as an assistant inside a teacher-controlled workflow:
+
+- The rubric is the scoring authority.
+- Every score should keep a reason and evidence.
+- Low-confidence or ambiguous papers go to a review queue.
+- Platform submission and local records must be reconciled.
+- A teacher should confirm scoring rules before real grading and confirm risky submissions before they are committed.
+
+The goal is not unattended grading. The goal is a stable workflow that makes teacher review faster and safer.
+
+## 5 分钟 Demo
+
+Open the fictional physics example:
+
+- [`examples/physics-subjective-question/question.md`](examples/physics-subjective-question/question.md)
+- [`examples/physics-subjective-question/generated-rubric.md`](examples/physics-subjective-question/generated-rubric.md)
+- [`examples/physics-subjective-question/model-grading-prompt.md`](examples/physics-subjective-question/model-grading-prompt.md)
+- [`examples/physics-subjective-question/sample-grading-output.json`](examples/physics-subjective-question/sample-grading-output.json)
+- [`examples/physics-subjective-question/teacher-report.md`](examples/physics-subjective-question/teacher-report.md)
+
+The example is fully fictional and contains no real student data, images, cookies, tokens, or platform ledger.
+
+## Quickstart / 快速使用
+
+1. Clone this repository into the skill directory used by your agent.
+
+Codex on Windows:
+
+```powershell
+git clone https://github.com/zonywei/Yuejuan-marking-workflow-skill.git $env:USERPROFILE\.codex\skills\zhixue-marking-workflow
+```
+
+Claude Code on Windows:
+
+```powershell
+git clone https://github.com/zonywei/Yuejuan-marking-workflow-skill.git $env:USERPROFILE\.claude\skills\zhixue-marking-workflow
+```
+
+macOS / Linux:
+
+```bash
+git clone https://github.com/zonywei/Yuejuan-marking-workflow-skill.git ~/.codex/skills/zhixue-marking-workflow
+git clone https://github.com/zonywei/Yuejuan-marking-workflow-skill.git ~/.claude/skills/zhixue-marking-workflow
+```
+
+2. Invoke the skill in a compatible agent.
+
+```text
+Use $zhixue-marking-workflow 帮我根据 examples/physics-subjective-question 里的题目、答案和样例学生答案，整理评分标准、模型阅卷 prompt、复核队列和教师报告。
+```
+
+3. Use the example files as input to your agent.
+
+This repository includes helper scripts, but it does not pretend to provide a one-click grading system for every platform. For the demo, read the example files and ask your agent to produce or compare:
+
+- `generated-rubric.md`
+- `model-grading-prompt.md`
+- `sample-grading-output.json`
+- `review-queue.md`
+- `teacher-report.md`
+
+4. For real grading, replace the example with your own teacher-approved materials and keep all student data outside the repository.
+
+## Install / 安装方式
+
+The common install commands are shown in the Quickstart above. For other agents that support `SKILL.md`, install the whole repository as one skill folder and keep these paths together:
+
+- `SKILL.md`
+- `references/`
+- `scripts/`
+- `agents/`
+- `examples/`
+
+## Who This Is For
+
+See [`docs/positioning.md`](docs/positioning.md) for the full positioning.
+
+- 一线教师：需要批改大量主观题，希望减少重复劳动，但保留教师确认和复核权。
+- AI Agent / Skill 开发者：希望参考一个教育场景下的 `SKILL.md` 工作流设计。
+- 教育产品或学校技术团队：希望把网页登录阅卷平台拆成可审计的模块：登录会话、缓存、评分、提交、复核、对账、报告。
 
 ## 中文介绍
 
@@ -48,199 +165,9 @@
 7. 报告：用保存的证据生成教师能直接阅读的阅卷反馈。
 8. 沉淀：把通用规则留在 Skill，把本题专属细则留在本次阅卷目录。
 
-## 安装
-
-把仓库克隆到你的 Agent/智能体 Skill 目录。不同 Agent 的目录可能不同，下面是常见示例。
-
-Codex:
-
-```powershell
-git clone https://github.com/zonywei/Yuejuan-marking-workflow-skill.git $env:USERPROFILE\.codex\skills\zhixue-marking-workflow
-```
-
-Claude Code:
-
-```powershell
-git clone https://github.com/zonywei/Yuejuan-marking-workflow-skill.git $env:USERPROFILE\.claude\skills\zhixue-marking-workflow
-```
-
-macOS / Linux:
-
-```bash
-git clone https://github.com/zonywei/Yuejuan-marking-workflow-skill.git ~/.codex/skills/zhixue-marking-workflow
-git clone https://github.com/zonywei/Yuejuan-marking-workflow-skill.git ~/.claude/skills/zhixue-marking-workflow
-```
-
-其他支持 `SKILL.md` 的 Agent，可以把整个仓库作为一个 Skill 目录安装，并确保目录内保留 `SKILL.md`、`references/`、`scripts/` 和 `agents/`。
-
-## 快速使用
-
-在支持 Skill 调用的 Agent 里明确调用：
-
-```text
-Use $zhixue-marking-workflow 帮我根据这道题和参考答案整理评分标准，并准备批量阅卷流程。
-```
-
-或：
-
-```text
-Use $zhixue-marking-workflow to prepare a rubric, grading prompt, and review workflow for this subjective question.
-```
-
-## 已发布平台
-
-- GitHub: `https://github.com/zonywei/Yuejuan-marking-workflow-skill`
-- agentskill.sh: `https://agentskill.sh/zonywei/yuejuan-marking-workflow-skill`
-- SkillHQ: `https://skillhq.dev/skills/user_0404bb5c/zhixue-marking-workflow`
-
-## 商店 Listing 信息
-
-推荐标题：
-
-```text
-Yuejuan Marking Workflow Skill
-```
-
-一句话介绍：
-
-```text
-面向教师和教育机构的通用主观题阅卷工作流：整理评分标准、辅助批量评分、复核对账，并生成教学反馈报告。
-```
-
-推荐分类：
-
-```text
-Education, Productivity, AI Agents
-```
-
-关键词：
-
-```text
-teacher, education, grading, marking, rubric, subjective questions, AI-assisted grading, web grading platform, Zhixue, reconciliation, teacher reports
-```
-
-## 典型使用场景
-
-- 教师上传题目、参考答案和分值，Agent 帮助生成评分标准草稿。
-- 教师登录阅卷平台后，Agent 协助观察当前平台的可操作工作流。
-- 批量缓存学生答题图片，按 rubric 进行 AI 辅助评分。
-- 将低置信度、边界卷、疑似空白卷放入复核队列。
-- 对已提交或重提的分数与平台复核列表做对账。
-- 生成面向教师的阅卷报告和教学反馈。
-
-## 智学网 Adapter
-
-`scripts/zhixue_mark.py` 是智学网专用 helper，用于已授权教师会话下的 fetch/cache/submit/recommit 流程。
-
-先从示例配置复制本地配置文件：
-
-```text
-scripts/zhixue_mark.config.example.json
-```
-
-安装脚本依赖：
-
-```powershell
-py -3 -m pip install -r requirements.txt
-```
-
-常用命令：
-
-```powershell
-py -3 .\scripts\zhixue_mark.py calibrate-blanks .\confirmed-blank-papers
-py -3 .\scripts\zhixue_mark.py current
-py -3 .\scripts\zhixue_mark.py commit SCORE
-py -3 .\scripts\zhixue_mark.py recommit-user USER_CODE SCORE
-py -3 .\scripts\zhixue_mark.py recommit ITEM_ID SCORE USER_CODE
-py -3 .\scripts\zhixue_mark.py batch-zero COUNT
-py -3 .\scripts\zhixue_mark.py status
-```
-
-只有在教师确认当前任务允许提交、重提或临时占卷时，才使用提交类命令。
-
-## Prompt Pack 生成
-
-当评分标准或模型阅卷 prompt 还不稳定时，使用：
-
-```powershell
-py -3 .\scripts\build_prompt_pack.py .\scripts\prompt_pack.example.json .\prompt-pack-out
-```
-
-会生成：
-
-- `rubric-generation-prompt.md`
-- `original-question-prompt.md`
-- `standard-model-grading-prompt.md`
-- `review-required.md`
-- `source_bundle.md`
-- `normalized_input.json`
-
-真实阅卷前，教师需要审阅并确认生成的评分 prompt。
-
-## 跨平台迁移
-
-对于非智学网平台，保留阅卷策略，只替换平台 adapter。
-
-迁移时按这个顺序观察：
-
-1. 观察一次人工阅卷流程：打开试卷、看答案、输入分数、提交、进入下一份。
-2. 只在教师已登录且授权的当前阅卷任务里检查网络请求。
-3. 找出任务信息、试卷获取、图片获取、提交、复核列表和重评路径。
-4. 先测试只读接口，再测试提交接口。
-5. 先缓存一份试卷，并和浏览器界面比对。
-6. 提交前获得明确授权，提交后立即对账。
-
-不要自动绕过 CAPTCHA、短信、扫码、人机验证、任务冲突或阅卷权属冲突。
-
-## 安全与隐私
-
-不要提交到仓库：
-
-- cookies 或 tokens。
-- local `zhixue_mark.config.json`。
-- 真实学生 ID、姓名或答题图片。
-- 阅卷 ledger、event log 或含学生数据的报告。
-- `zhixue_work/` 等临时输出目录。
-
-`.gitignore` 已排除常见本地配置和缓存路径，但每次提交前仍应检查 `git status`。
-
-## 目录结构
-
-```text
-.
-├── SKILL.md
-├── agents/
-│   └── openai.yaml
-├── references/
-│   ├── grading-strategy.md
-│   ├── model-scoring.md
-│   ├── prompt-generation.md
-│   ├── speed-accuracy-controls.md
-│   └── subject-scoring-defaults.md
-├── scripts/
-│   ├── build_prompt_pack.py
-│   ├── prompt_pack.example.json
-│   ├── zhixue_mark.config.example.json
-│   └── zhixue_mark.py
-└── requirements.txt
-```
-
-## 校验
-
-```powershell
-py -3 "$env:USERPROFILE\.codex\skills\.system\skill-creator\scripts\quick_validate.py" .
-py -3 -B -m py_compile .\scripts\build_prompt_pack.py .\scripts\zhixue_mark.py
-```
-
-## 许可证
-
-本项目使用 MIT License。你可以使用、修改、分发和商业使用本项目，但需要保留版权声明和许可证文本。
-
----
-
 ## English Introduction
 
-Yuejuan Marking Workflow Skill is a general SKILL.md agent skill for teachers, teaching teams, schools, and education companies. It helps AI agents support subjective-question grading, rubric preparation, batch scoring, reconciliation, and teacher-facing report generation.
+Yuejuan Marking Workflow Skill is a general `SKILL.md` agent skill for teachers, teaching teams, schools, and education companies. It helps AI agents support subjective-question grading, rubric preparation, batch scoring, reconciliation, and teacher-facing report generation.
 
 The current skill name is `$zhixue-marking-workflow`. The name is preserved for compatibility with existing agent installations, but the project is no longer limited to Zhixue. It is Zhixue-first and can be adapted to similar authenticated web grading platforms that require login, paper fetching, scoring, submission, review, and reconciliation.
 
@@ -286,46 +213,13 @@ The hard part of subjective-question grading is not just clicking Submit. The wo
 7. Generate reports from saved evidence.
 8. Keep reusable rules in the skill and task-specific rules in the run folder.
 
-## Install
-
-Clone this repository into the skill directory used by your AI agent.
-
-Codex:
-
-```powershell
-git clone https://github.com/zonywei/Yuejuan-marking-workflow-skill.git $env:USERPROFILE\.codex\skills\zhixue-marking-workflow
-```
-
-Claude Code:
-
-```powershell
-git clone https://github.com/zonywei/Yuejuan-marking-workflow-skill.git $env:USERPROFILE\.claude\skills\zhixue-marking-workflow
-```
-
-macOS / Linux:
-
-```bash
-git clone https://github.com/zonywei/Yuejuan-marking-workflow-skill.git ~/.codex/skills/zhixue-marking-workflow
-git clone https://github.com/zonywei/Yuejuan-marking-workflow-skill.git ~/.claude/skills/zhixue-marking-workflow
-```
-
-For other agents that support `SKILL.md`, install the whole repository as one skill folder and keep `SKILL.md`, `references/`, `scripts/`, and `agents/` together.
-
-## Quick Use
-
-Invoke it explicitly in a compatible agent:
-
-```text
-Use $zhixue-marking-workflow to prepare a rubric, grading prompt, and review workflow for this subjective question.
-```
-
-## Published Listings
+## Published Listings / 已发布平台
 
 - GitHub: `https://github.com/zonywei/Yuejuan-marking-workflow-skill`
 - agentskill.sh: `https://agentskill.sh/zonywei/yuejuan-marking-workflow-skill`
 - SkillHQ: `https://skillhq.dev/skills/user_0404bb5c/zhixue-marking-workflow`
 
-## Marketplace Listing
+## Marketplace Listing / 商店 Listing 信息
 
 Recommended title:
 
@@ -336,7 +230,7 @@ Yuejuan Marking Workflow Skill
 Short description:
 
 ```text
-A general agent skill for teachers and education teams: prepare rubrics, assist batch scoring, reconcile results, and generate teaching feedback reports.
+面向教师和教育机构的通用主观题阅卷工作流：整理评分标准、辅助批量评分、复核对账，并生成教学反馈报告。
 ```
 
 Suggested category:
@@ -360,7 +254,7 @@ teacher, education, grading, marking, rubric, subjective questions, AI-assisted 
 - Submitted or recommitted scores are reconciled against platform state.
 - A teacher-facing grading report is generated from saved evidence.
 
-## Zhixue Adapter
+## Zhixue Adapter / 智学网 Adapter
 
 `scripts/zhixue_mark.py` is a Zhixue-specific helper for fetch/cache/submit/recommit flows under an authorized teacher session.
 
@@ -390,7 +284,7 @@ py -3 .\scripts\zhixue_mark.py status
 
 Use submit/recommit commands only when the teacher confirms that the current task allows the action.
 
-## Prompt Pack Generation
+## Prompt Pack Generation / Prompt Pack 生成
 
 Use this when the rubric or model-grading prompt is not ready:
 
@@ -409,7 +303,7 @@ It generates:
 
 The teacher should review and approve the generated grading prompt before real grading.
 
-## Cross-Platform Adaptation
+## Cross-Platform Adaptation / 跨平台迁移
 
 For non-Zhixue platforms, keep the grading strategy and replace only the platform adapter.
 
@@ -424,7 +318,9 @@ Adaptation checklist:
 
 Do not automate around CAPTCHA, SMS, QR confirmation, human verification, task mismatch, or reviewer ownership conflicts.
 
-## Safety And Privacy
+## Safety And Privacy / 安全与隐私
+
+See [`docs/safety-and-privacy.md`](docs/safety-and-privacy.md).
 
 Never commit:
 
@@ -436,13 +332,19 @@ Never commit:
 
 The `.gitignore` excludes common local config and cache paths, but always inspect `git status` before committing.
 
-## Repository Layout
+## Repository Layout / 目录结构
 
 ```text
 .
 ├── SKILL.md
 ├── agents/
 │   └── openai.yaml
+├── docs/
+│   ├── positioning.md
+│   ├── publish-checklist.md
+│   └── safety-and-privacy.md
+├── examples/
+│   └── physics-subjective-question/
 ├── references/
 │   ├── grading-strategy.md
 │   ├── model-scoring.md
@@ -457,13 +359,32 @@ The `.gitignore` excludes common local config and cache paths, but always inspec
 └── requirements.txt
 ```
 
-## Validation
+## GitHub Topics / GitHub Topics 建议
+
+Suggested repository topics:
+
+```text
+ai
+education
+teacher-tools
+grading
+marking
+rubric
+ai-agents
+skill
+subjective-questions
+workflow
+zhixue
+teaching
+```
+
+## Validation / 校验
 
 ```powershell
 py -3 "$env:USERPROFILE\.codex\skills\.system\skill-creator\scripts\quick_validate.py" .
 py -3 -B -m py_compile .\scripts\build_prompt_pack.py .\scripts\zhixue_mark.py
 ```
 
-## License
+## License / 许可证
 
 This project is licensed under the MIT License. You may use, modify, distribute, and use it commercially, provided that the copyright notice and license text are preserved.
