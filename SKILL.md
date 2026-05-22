@@ -24,6 +24,29 @@ This skill is for legitimate teacher-side grading. Do not use it to bypass login
 9. Reconcile the local ledger, submission events, and platform review list before claiming completion.
 10. Generate reports only from saved ledger rows, event logs, and preserved evidence.
 
+## New Task Startup
+
+When the user starts a new grading task, decide the batch path before scoring at scale. Do not treat every task as paper-by-paper manual grading.
+
+First establish:
+
+- task identity: platform, exam, question, score ceiling, rubric, and current grading role
+- authenticated channel: browser session, cookie/referer API config, official export, or manual UI only
+- queue behavior: current-paper queue, preloaded/list endpoint, review list, or official export/import
+- correction path: whether submitted scores can be edited, recommitted, regraded, or only finalized once
+- evidence path: whether images/text can be cached with stable `userCode`, item id, or paper id
+- risk limits: blank-paper policy, unclear images, score step, batch size, and review rules
+
+Then choose one primary batch mode:
+
+1. `batch-fetch first`: use when a read-only list, preloaded queue, or official export can enumerate papers. Cache paper ids, images, and metadata without submitting scores; then score cached papers, submit only validated high-confidence rows, and reconcile.
+2. `batch-zero occupy then recommit`: use when the platform exposes only a current-paper queue and the user confirms later recommit/edit is allowed. Occupy in small batches, cache every image and id, score from the cache, then recommit by `userCode` or item id.
+3. `single-current grade`: use when the queue advances only after submit and recommit is not confirmed. Score the current paper, submit only after validation, then fetch the next paper.
+4. `blank-skip fast path`: use only after blank calibration or direct visual confirmation. Stop on nonblank or review-zone papers.
+5. `browser/manual assisted`: use when backend calls are unstable, authorization is unclear, or the platform requires manual confirmation.
+
+For Zhixue current-paper tasks, the usual high-throughput path is: configure auth, run `status`, fetch and verify one `current` paper, confirm recommit permission, run bounded `batch-zero COUNT` only with user approval, score cached images, recommit from `pending_regrade.jsonl`, then reconcile event log and platform state.
+
 ## Overall Grading Strategy
 
 Treat grading as a controlled production workflow, not as isolated paper-by-paper judgment.
@@ -86,6 +109,13 @@ For any batch mode:
 4. Score in bounded batches, checkpoint after each batch, and keep a review queue.
 5. Run periodic audit sampling on auto-submitted scores.
 6. Reconcile after every submit/recommit batch, not only at the end.
+
+Use these terms consistently:
+
+- `batch pull` or `batch fetch`: read-only cache of many papers. Prefer this whenever a list/export endpoint exists. Do not call it batch fetch if the queue only advances after submit.
+- `batch occupy`: provisional submit used only to advance a current-paper queue while preserving a later correction path. In Zhixue helper terms this is `batch-zero`.
+- `batch grading`: model-assisted scoring of cached papers from the approved rubric, producing structured rows with score, reason, confidence, and review flag.
+- `batch submit/recommit`: platform write step after validation. Keep this separate from scoring so unsafe rows can stay in review.
 
 ## Required Boundaries
 
