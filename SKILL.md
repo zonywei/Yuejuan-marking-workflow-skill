@@ -1,352 +1,406 @@
 ---
 name: zhixue-marking-workflow
-description: Use when the user is doing Zhixue/智学网 teacher-side subjective-question grading, web阅卷/改卷 on an authenticated grading platform, or tasks involving rubric-based marking, batch paper/image scoring, blank-paper handling, score 提交/重提, ledger recovery, reconciliation, or teacher reports.
+description: "Use this skill for Zhixue teacher-side subjective-question grading workflows: AI-assisted rubric scoring, script/API-based batch grading, cache-ledger recovery, blank screening, recommit/review reconciliation, and concise teacher-facing grading reports."
+metadata:
+  short-description: "Zhixue grading workflow with cache, ledger, and reports."
 ---
 
 # Zhixue Marking Workflow
 
-## Core Principle
+## Overview
 
-Use this skill to run or refine an authorized Zhixue subjective-question grading workflow, or to adapt the same pattern to another authenticated web grading platform. Keep the grading rubric as the scoring authority, keep the teacher's authenticated session as the access boundary, and keep local ledgers as the recovery and reporting source.
+This skill packages a practical Zhixue subjective-question grading workflow:
 
-This skill is for legitimate teacher-side grading. Do not use it to bypass login, defeat human verification, scrape unrelated student data, invent unsupported endpoints, or overwrite another grader's work without explicit permission.
+- use the model to score subjective-question papers from the rubric
+- automate repeated actions around fetch, cache, submit, and continue
+- preserve a local cache for review and recovery
+- use blank-paper screening conservatively
+- calibrate blank thresholds from multiple confirmed blank papers
+- optimize for both speed and accuracy through confidence routing, validation, and sampling
+- turn grading outcomes into teaching summaries and technical retrospectives
 
-## Standard Flow
+Use this skill only with a valid teacher session and with the user's approval to operate on their Zhixue grading task.
 
-1. Confirm the user has an active teacher-side Zhixue grading task and approval for automation.
-2. Capture the task scope: problem, answer key, total score, subquestion score split, grading rules, and whether recommit is permitted.
-3. If the rubric is incomplete, generate a prompt pack with `scripts/build_prompt_pack.py`, then wait for user review before real grading.
-4. Confirm the authenticated channel: browser session, cookie/referer, API session, or approved manual export.
-5. Cache each paper image and metadata before scoring. Store the run outside the skill folder, such as `./zhixue_work/<task-name>/`.
-6. Score from the current rubric with structured output: paper id, per-part scores, total score, brief reason, confidence, and review flag.
-7. Validate scores before any submit or recommit: bounds, total sum, allowed score step, and required fields.
-8. Submit only high-confidence validated results. Route unclear handwriting, rubric ambiguity, low confidence, and suspected conflicts to review.
-9. Reconcile the local ledger, submission events, and platform review list before claiming completion.
-10. Generate reports only from saved ledger rows, event logs, and preserved evidence.
+## Capabilities
 
-## New Task Startup
+- score cached Zhixue subjective-question images against a user-confirmed rubric
+- automate fetch/cache/submit/recommit/review-list operations when the authenticated session allows it
+- batch occupy papers for later offline scoring when the current task permits recommit
+- keep resumable local ledgers, pending queues, event logs, and report evidence
+- generate concise teacher-facing summaries from saved grading records
 
-When the user starts a new grading task, decide the batch path before scoring at scale. Do not treat every task as paper-by-paper manual grading.
+## When To Use This Skill
 
-First establish:
+Use it when the user asks to:
 
-- task identity: platform, exam, question, score ceiling, rubric, and current grading role
-- authenticated channel: browser session, cookie/referer API config, official export, or manual UI only
-- queue behavior: current-paper queue, preloaded/list endpoint, review list, or official export/import
-- correction path: whether submitted scores can be edited, recommitted, regraded, or only finalized once
-- evidence path: whether images/text can be cached with stable `userCode`, item id, or paper id
-- risk limits: blank-paper policy, unclear images, score step, batch size, and review rules
+- grade Zhixue subjective papers more efficiently
+- inspect or improve a Zhixue grading script
+- package a Zhixue grading workflow into reusable tooling
+- generate rubrics and prompt packs from uploaded source problems and answers
+- analyze common student errors after grading
+- create meeting briefs, teaching summaries, or technical retrospectives from a grading run
 
-Then choose one primary batch mode:
+Do not use it for bypassing login, obtaining unauthorized access, or inventing unofficial endpoints without evidence from the current authenticated session.
 
-1. `batch-fetch first`: use when a read-only list, preloaded queue, or official export can enumerate papers. Cache paper ids, images, and metadata without submitting scores; then score cached papers, submit only validated high-confidence rows, and reconcile.
-2. `batch-zero occupy then recommit`: use when the platform exposes only a current-paper queue and the user confirms later recommit/edit is allowed. Occupy in small batches, cache every image and id, score from the cache, then recommit by `userCode` or item id.
-3. `single-current grade`: use when the queue advances only after submit and recommit is not confirmed. Score the current paper, submit only after validation, then fetch the next paper.
-4. `blank-skip fast path`: use only after blank calibration or direct visual confirmation. Stop on nonblank or review-zone papers.
-5. `browser/manual assisted`: use when backend calls are unstable, authorization is unclear, or the platform requires manual confirmation.
+## Speed And Accuracy Priorities
 
-For Zhixue current-paper tasks, the usual high-throughput path is: configure auth, run `status`, fetch and verify one `current` paper, confirm recommit permission, run bounded `batch-zero COUNT` only with user approval, score cached images, recommit from `pending_regrade.jsonl`, then reconcile event log and platform state.
+For this skill, "fast and accurate" depends on more than prompt quality. Prioritize these controls:
 
-## Overall Grading Strategy
+1. Version the rubric and prompt pack for each question.
+2. Force structured grading output:
+   - per-part scores
+   - total score
+   - reasons
+   - confidence
+   - review flag
+3. Validate score bounds before submission:
+   - no part score below `0`
+   - no part score above its ceiling
+   - total score must equal the sum of part scores
+4. Calibrate blank thresholds from confirmed blank samples, not from guesswork.
+5. Use confidence routing:
+   - `confidence >= 0.90`: high confidence, eligible for auto-submit after validation
+   - `0.70 <= confidence < 0.90`: gray zone, use second-pass scoring, sampling audit, or manual review
+   - `confidence < 0.70`: low confidence, manual review
+   - unreadable image or rubric ambiguity: manual review regardless of numeric confidence
+6. Keep an exact grading log for replay and post-analysis.
+7. Add audit sampling even for auto-submitted papers so drift is caught early.
+8. Preprocess poor scans when needed before model scoring.
 
-Treat grading as a controlled production workflow, not as isolated paper-by-paper judgment.
+## Workflow
 
-1. `Define`: lock the question scope, score ceiling, rubric, score atoms, zero-credit rules, and allowed equivalent answers.
-2. `Calibrate`: score a small diverse sample first, including blank, low, partial, high, and borderline papers.
-3. `Stabilize`: convert calibration findings into prompt rules, validation checks, review flags, and error tags.
-4. `Batch`: process papers in bounded batches with local cache, structured output, and checkpointed ledger rows.
-5. `Audit`: sample high-confidence auto scores, review low-confidence cases, and re-check any tag affected by a new rule.
-6. `Reconcile`: compare ledger, submit events, and platform state before claiming completion.
-7. `Report`: summarize score distribution, common errors, strong responses, typical examples, and teaching suggestions from saved evidence.
-8. `Generalize`: after close-out, separate reusable scoring/workflow rules from current-question-only rubric details.
+1. Confirm the user is already logged in on Zhixue and has an active teacher session.
+2. Identify the current grading target:
+   - `markingPaperId`
+   - `topicNumStr`
+   - grading page `referer`
+3. Calibrate blank threshold from a folder of confirmed blank papers in the current grading environment.
+4. Use the bundled script in `scripts/zhixue_mark.py` to:
+   - fetch the current paper
+   - download and cache the current image locally
+   - hand the image and rubric to the model for scoring
+   - commit the model score
+   - optionally continue until the next non-blank paper
+5. Route papers by confidence using the default thresholds above unless the rubric, teacher-corrected samples, or user instructions justify stricter limits.
+6. Keep blank screening conservative. Treat `0.01` only as a fallback when no calibration set exists.
+7. Preserve local artifacts:
+   - cached image files
+   - `current.json`
+   - optional grading log
+8. After the grading batch, summarize:
+   - common scoring errors
+   - common strengths
+   - estimated or exact score distribution if logs exist
+   - teaching implications
 
-The agent should constantly ask: "What evidence supports this score, what would make this case unsafe to auto-submit, and how will this decision be audited later?"
+For rubric and prompt generation:
 
-## Cross-Platform Adapter Pattern
+1. Collect uploaded materials:
+   - original problem text or paper
+   - reference answer
+   - total points
+   - optional per-part points
+2. Normalize them into a JSON input file.
+3. Run `scripts/build_prompt_pack.py` to generate a prompt pack.
+4. Use the generated rubric-generation prompt to ask the model for a scoring rubric.
+5. Insert the rubric into the standard grading prompt draft.
+6. Show the draft grading prompt to the user.
+7. Let the user modify, add, or delete scoring details.
+8. Use the grading prompt only after explicit user confirmation.
 
-Treat every grading site as a platform adapter around the same core loop:
+## Script Usage
 
-1. task identity: exam, question, rubric, score ceiling, reviewer role
-2. queue discovery: current-paper endpoint, preloaded list, review list, or export file
-3. paper identity: stable paper id, student/user code, item id, image id, attempt id
-4. evidence fetch: image URL, crop regions, answer text, attachments, pagination
-5. scoring action: submit endpoint, browser form, batch import, or official review UI
-6. correction path: recommit, review-list edit, official regrade, or manual exception
-7. reconciliation source: platform count, review list, submitted status, audit export
+The reusable script is [scripts/zhixue_mark.py](./scripts/zhixue_mark.py).
 
-Keep platform-specific selectors, endpoints, headers, payload fields, and pagination rules in a local adapter script or run notes. Keep scoring, ledger, confidence routing, reporting, and subject rules platform-independent.
+Before running it, provide config in one of these ways:
 
-## Authenticated Interface Exploration
+- environment variable `ZHIXUE_MARK_CONFIG`
+- default config file `scripts/zhixue_mark.config.json`
 
-When adapting to a new grading platform, start from the logged-in manual workflow and map the minimum stable loop.
+Start from [scripts/zhixue_mark.config.example.json](./scripts/zhixue_mark.config.example.json) and copy it to `scripts/zhixue_mark.config.json` locally before use.
 
-1. Observe one manual grading cycle: open paper, inspect answer, enter score, submit, load next paper.
-2. Inspect network traffic only inside the user's authorized session and current grading task.
-3. Identify request families: task metadata, paper fetch, image fetch, score submit, review list, regrade/recommit, heartbeat/session checks.
-4. Reproduce read-only calls first. Redact cookies, tokens, and student data from logs.
-5. Cache one paper and compare the cached image/metadata with the browser UI.
-6. Smoke-test a harmless status/read path before any submit path.
-7. If submission automation is needed, test with one explicit user-approved paper and immediately reconcile platform state.
-8. Document adapter assumptions: auth source, task ids, item ids, score format, retry behavior, pagination, and failure signals.
-
-Do not continue automation if the platform shows human verification, task mismatch, ownership conflict, or unexplained state changes.
-
-## Batch Grading Exploration
-
-Look for the safest throughput path before grading at scale.
-
-- `single-current queue`: fetch current paper, score, submit, then fetch next.
-- `preloaded list`: cache all visible/preloaded papers, then score in batches.
-- `occupy then recommit`: submit a provisional score only when approved and later correction is officially possible.
-- `official export/import`: prefer it when the platform supports bulk download or upload with auditability.
-- `browser-only workflow`: use it when backend calls are unstable or too risky.
-
-For any batch mode:
-
-1. Build a local queue before scoring: identifier, image path, task id, current action state.
-2. Sort by answer density or confidence only for routing; do not let density decide scores.
-3. Use contact sheets or cropped batches when they remain readable.
-4. Score in bounded batches, checkpoint after each batch, and keep a review queue.
-5. Run periodic audit sampling on auto-submitted scores.
-6. Reconcile after every submit/recommit batch, not only at the end.
-
-Use these terms consistently:
-
-- `batch pull` or `batch fetch`: read-only cache of many papers. Prefer this whenever a list/export endpoint exists. Do not call it batch fetch if the queue only advances after submit.
-- `batch occupy`: provisional submit used only to advance a current-paper queue while preserving a later correction path. In Zhixue helper terms this is `batch-zero`.
-- `batch grading`: model-assisted scoring of cached papers from the approved rubric, producing structured rows with score, reason, confidence, and review flag.
-- `batch submit/recommit`: platform write step after validation. Keep this separate from scoring so unsafe rows can stay in review.
-
-## Required Boundaries
-
-- Operate only inside the current authenticated teacher task.
-- Never store live cookies or tokens in `SKILL.md`, reference files, examples, or committed configs.
-- Treat browser/API parameters as task-local secrets. Put them in a local config file ignored by version control.
-- Stop automation at CAPTCHA, slider, SMS, QR, or other human-verification checkpoints and ask the user to complete them.
-- Do not submit provisional scores unless the user confirms that later correction or recommit is allowed.
-- Do not overwrite another grader's score unless the user confirms the workflow permits it.
-- Prefer review over auto-submit when task identity, ownership, score rules, or image readability is uncertain.
-
-## Bundled Scripts
-
-The skill includes two reusable helpers:
-
-- `scripts/build_prompt_pack.py`: creates rubric-generation and grading-prompt drafts from source materials.
-- `scripts/zhixue_mark.py`: a Zhixue-specific adapter for authenticated fetch/cache/submit/recommit operations.
-
-### Prompt Pack
-
-Create a JSON input from the current problem, answer key, and score allocation. Start from `scripts/prompt_pack.example.json`.
-
-```powershell
-py -3 .\scripts\build_prompt_pack.py .\scripts\prompt_pack.example.json .\prompt-pack-out
-```
-
-Review the generated files with the user before grading:
-
-- `rubric-generation-prompt.md`
-- `original-question-prompt.md`
-- `standard-model-grading-prompt.md`
-- `review-required.md`
-
-Do not use a generated grading prompt until the user approves the rubric details and edge-case scoring rules.
-
-### Zhixue Marking Helper
-
-Create a local config from `scripts/zhixue_mark.config.example.json`.
-
-Configuration can be supplied by:
-
-- `ZHIXUE_MARK_CONFIG`
-- `scripts/zhixue_mark.config.json`
-
-Required keys:
+Required config keys:
 
 - `markingPaperId`
 - `topicNumStr`
 - `referer`
 - `cookie`
 
-Recommended keys:
+Optional config keys:
 
 - `outDir`
-- calibrated blank thresholds for the current scan style
+- `blankThreshold`
 
 Core commands:
 
 ```powershell
 py -3 .\scripts\zhixue_mark.py calibrate-blanks .\confirmed-blank-papers
 py -3 .\scripts\zhixue_mark.py current
-py -3 .\scripts\zhixue_mark.py commit SCORE
-py -3 .\scripts\zhixue_mark.py recommit-user USER_CODE SCORE
-py -3 .\scripts\zhixue_mark.py recommit ITEM_ID SCORE USER_CODE
-py -3 .\scripts\zhixue_mark.py batch-zero COUNT
+py -3 .\scripts\zhixue_mark.py commit 14
+py -3 .\scripts\zhixue_mark.py recommit-user 78361158 0
+py -3 .\scripts\zhixue_mark.py recommit "[\"item-id\"]" 0 78361158
+py -3 .\scripts\zhixue_mark.py batch-zero 20
 py -3 .\scripts\zhixue_mark.py status
-py -3 .\scripts\zhixue_mark.py grade SCORE
-py -3 .\scripts\zhixue_mark.py skip-blanks
+py -3 .\scripts\zhixue_mark.py grade 9
+py -3 .\scripts\zhixue_mark.py grade 14 0.01
+py -3 .\scripts\zhixue_mark.py skip-blanks 0.01
+py -3 .\scripts\build_prompt_pack.py .\scripts\prompt_pack.example.json .\prompt-pack-out
 ```
 
-Use `batch-zero` only as an occupy/cache strategy when the current task permits later recommit and the user has approved that approach.
+Behavior:
 
-## Scoring Rules
+- `calibrate-blanks PATH`: compute `darkRatio` statistics from multiple confirmed blank papers and output strict/recommended thresholds
+- `current`: fetch current paper, cache image, write `current.json`
+- `commit SCORE`: submit score for cached paper
+- `recommit-user USER_CODE SCORE`: locate a graded paper through the review list and overwrite its score
+- `recommit ITEM_ID SCORE [USER_CODE]`: overwrite by the original occupied `itemId`; use this when `searchMarked` cannot find the user
+- `batch-zero COUNT`: first occupy `COUNT` papers with `0` and append them to `pending_regrade.jsonl` for later offline regrading
+- `status`: print current config paths, thresholds, and cache pointers for audit/debug
+- `grade SCORE [THRESHOLD]`: submit current score, then continue through blank papers until the next non-blank paper
+- `skip-blanks [THRESHOLD]`: skip blank papers conservatively until the next non-blank paper
 
-The current question rubric always overrides defaults.
+In agent use, the normal pattern is:
 
-Use these general rules when the rubric is incomplete:
+1. fetch image
+2. ask the model to score against the rubric
+3. auto-submit if confidence is high enough
+4. only escalate gray cases when needed
 
-- Award only points supported by visible, relevant student work.
-- Accept equivalent reasoning or expression when it satisfies the same scoring atom.
-- Preserve independent partial credit when one subquestion or step is correct and separable.
-- Do not let unrelated errors erase already earned independent points unless the rubric says the later score depends on the earlier result.
-- Do not award credit for dense but irrelevant writing.
-- Treat blank, unrelated, or wholly incorrect responses as `0`.
-- Route unreadable, ambiguous, crossed-out, or near-boundary work to review.
-- Use OCR, dark ratio, answer density, and contact-sheet sorting only as routing aids. Final scores must come from the rubric and visual evidence.
+## Preferred Pure Script Batch Mode
 
-Use scoring-rule layers in this order:
+For high-throughput Zhixue marking runs, prefer pure script mode when feasible and approved for the current task. Use Chrome or browser automation only to confirm login, capture `cookie` / `referer` / task parameters, or recover a failed session; do not use the browser for ordinary per-paper grading.
 
-1. latest explicit user instruction
-2. current question rubric and official answer
-3. teacher-corrected calibration samples
-4. subject-specific default rules
-5. platform-independent general rules
+Preferred high-throughput flow:
 
-If a subject-specific rule emerges during a run, keep it in the run ledger or rubric file unless it clearly generalizes across future grading tasks. Read `references/subject-scoring-defaults.md` when the task needs subject defaults.
+1. After approval for the current task, use script commands such as `batch-zero` to occupy/cache available papers with provisional `0` scores.
+2. Store every occupied paper in the authoritative queue with `userCode`, `itemId`, `imagePath`, provisional score, and final-score status.
+3. Treat provisional `0` submission as an occupy/cache strategy only when the current workflow permits later recommit and the user approves it. Smoke-test the occupy/recommit chain when the task shape or script integration changes.
+4. Before offline scoring, compute an answer-density metric for all cached images and sort from dense to sparse. Do not front-load a separate blank-paper pass.
+5. Score dense answer sheets first, sparse answer sheets next, and the low-density tail last; the tail is expected to contain blank or near-blank `0` papers in a cluster.
+6. Build contact sheets or model batches with at least 6 papers when legibility remains good. Larger batches are acceptable only when crop labels and answer regions remain unambiguous.
+7. Crop each paper to the relevant response area for batch scoring while preserving the original image path for zoom-in review.
+8. Require structured scoring output: `userCode`, `itemId`, per-part scores, total score, brief reason, confidence, and review flag.
+9. Recommit true scores through review/recommit. If review-list lookup misses a paper, fall back to the stored `itemId`.
+10. Reconcile the ledger, event log, and backend review list before claiming completion.
 
-## During-Run Improvement Loop
+## Runtime Persistence And Evidence Capture
 
-Treat a grading run as a live calibration process.
+During grading, save progress continuously. Do not rely on chat memory, browser state, or model memory for later reporting. The agent may choose the exact checkpoint cadence for throughput, but it must stay bounded.
 
-1. Tag recurring errors while grading, not only in the final report.
-2. Record per-paper scoring reasons compactly enough to audit later.
-3. After each batch, summarize new scoring patterns, ambiguous cases, and rubric gaps.
-4. If a new rule affects already scored papers, re-audit the affected tag group before final submission or report.
-5. Keep question-specific rules in the run rubric. Move only reusable platform or subject rules into the skill.
-6. At close-out, produce a short generalization note: reusable rules, task-only rules, unresolved edge cases, and report highlights.
+1. Write authoritative ledger checkpoints after each contact-sheet/model batch, or at least every 10 scored papers, or before any long pause/context switch. Per-paper immediate writes are allowed but not required when batching is faster.
+2. Each ledger checkpoint must include all papers scored since the previous checkpoint, with `userCode`, `itemId`, image path, crop/contact-sheet path when used, per-part scores, total score, concise reason, confidence, review flag, and current action.
+3. After every submit or recommit batch, append event-log records with timestamp, `userCode`, `itemId`, submitted score, API result, retry count, and any fallback path used.
+4. Save batch artifacts as they are produced: contact sheets, cropped typical-answer candidates, density/order manifests, review queues, and low-confidence lists.
+5. Record error tags while grading, not only at the end. Use compact reusable labels such as blank, irrelevant, wrong model, naked formula, calculation error, missing key equation, position error, unreadable, or needs review.
+6. Keep a running summary file or JSON snapshot after each batch with completed count, remaining count, score distribution so far, likely typical examples, unresolved review cases, and failed submissions.
+7. Before long pauses, context switches, or report generation, checkpoint the ledger and event log and verify that row counts and unique `userCode` counts still match expectations.
+8. Generate teacher-facing summaries from saved ledger/evidence only. If a statistic, common error, or typical example is not supported by saved records or screenshots, label it as an estimate or omit it.
+9. Preserve enough evidence for the final report: representative full-score, partial-score, low-score, wrong-model, and zero/blank examples should have cropped image paths and one-line reasons available before report writing begins.
 
-## Confidence Routing
+## Goal-Style Completion Discipline
 
-Use confidence to reduce manual work, not to replace validation.
+A real Zhixue grading run is a goal-style task. Once the user starts a concrete grading batch, treat completion as the full current round being graded, submitted/recommitted, reconciled, and reported when requested.
 
-- Confirmed blank zone: eligible for `0` only after calibration or direct visual confirmation.
-- High confidence: eligible for submit after score validation.
-- Medium confidence: sample audit or second-pass review.
-- Low confidence, unreadable image, rubric conflict, or task mismatch: manual review.
+1. Do not stop merely because one batch, one contact sheet, or one scoring pass is complete.
+2. Keep advancing until the current round has no remaining ungraded queue items, no unresolved recommit failures, and no ledger/backend mismatch.
+3. If tool context is about to change, checkpoint first and leave a resumable state with next action, remaining queue path, and unresolved cases.
+4. Escalate only real blockers: expired login/session, missing rubric, ambiguous user scoring rule, unreadable evidence that affects score, API failure that cannot be retried safely, or user instruction to pause/stop.
+5. If a formal goal mechanism is available in the host environment and the user starts an actual grading run, use it to track the run objective and mark it complete only after the full round is finished.
 
-Calibrate thresholds from the current task's confirmed samples. Avoid freezing fallback numeric thresholds into future tasks.
+## Default Scoring Principles
 
-## Ledger And Evidence
+These defaults come from high-school physics subjective grading, especially calculation and experiment questions. For other subjects, or when the current rubric conflicts with this section, the question-specific rubric and the user's latest instruction override these physics defaults.
 
-Maintain one authoritative run ledger. It should include:
+1. `等价给分`: Different valid solution paths receive the same credit when they prove the same required result or relationship.
+2. `只看对的`: Award credit for correct, relevant work; do not let unrelated mistakes erase already-earned independent points unless the rubric says the mistake invalidates that step.
+3. `关键公式给步骤分`: Give step credit for correct key formulas, physical relationships, conservation equations, or reasoning targets even when the final answer is incomplete.
+4. `思路正确优先给分`: When the physical model, object selection, process selection, or equation setup is correct, preserve the corresponding reasoning points.
+5. `计算错误不否定前面得分`: Arithmetic or algebra errors should not remove earlier correct setup/formula points, though they may lose result or follow-through points.
+6. `不因表达方式扣分`: Do not deduct for nonstandard wording, symbol choice, or answer format if the physical meaning is clear and the rubric requirement is satisfied.
+7. `空白或内容与本题无关或全错给0分`: Blank answers, irrelevant content, or answers with no correct physics for the current problem receive `0`.
+8. `按当前小问和当前位置给分`: Respect the current subquestion boundaries and answer positions unless the user explicitly allows cross-position credit.
+9. `碰巧结果正确不保留结果分`: If the process and physics are wrong and the result is only accidentally correct, do not award result credit.
+10. `边界卷谨慎复核`: For sparse, unclear, or near-blank papers, prefer review over aggressive auto-zero when there is any plausible relevant work.
+11. `答案分和过程分分开`: If the rubric has result points, a result-only answer may receive only those result points when there is no contradicting wrong physics; if the visible process is wrong, treat the result as accidental and do not award result credit.
+12. `省略纯数学化简不扣分`: Do not deduct for omitted algebraic simplification when the correct physical relationship, substitutions, and final rubric target are clear.
+13. `少量相关公式不按空白处理`: A paper with any plausible relevant formula, diagram mark, variable relation, or subquestion attempt is not a blank paper; route it to grading or review instead of auto-zero.
+14. `有字不等于有分`: Dense writing, copied formulas, or long text still receives `0` when it never establishes a valid model, object, process, state comparison, or required physical relationship for the current problem.
+15. `裸公式不等于有效关系`: Generic formulas such as `F=ma`, `PV=nRT`, energy, momentum, or kinematics equations earn credit only when tied to the correct object, process, state, direction, or variables required by the rubric.
+16. `模型先于计算`: For physics problems, first judge whether the student chose the correct physical model/process/state; wrong-model work can invalidate a subquestion even if the algebra is lengthy.
+17. `独立小问不连坐`: Award a later independent subquestion if its model and relationship are correct, even when earlier subquestions are blank or wrong, unless the current rubric makes the later score depend on the earlier result.
+18. `只认稳定可辨认内容`: Use zoom/crop/review for unclear handwriting, but do not force credit for steps that cannot be read reliably.
+19. `作答面积和OCR不直接决定分数`: Answer density, dark-ratio, and OCR are routing aids only; final scores must come from the rubric and direct visual reading of the response.
+20. `低分和高疑似0分重点复核`: In batch workflows, prioritize review of nonzero low-score papers and high-suspicion zero papers because both under-crediting real steps and over-crediting invalid pseudo-steps occurred in prior runs.
 
-- stable paper identifier, such as `userCode` or platform item id
-- roster identity when available: admission ticket number or `userNum`, class name, and student name from an authorized local roster export
-- image path and crop/contact-sheet path when used
-- per-part scores and total score
-- concise scoring reason
-- one-sentence student-facing or teacher-facing feedback when requested
-- confidence and review flag
-- action state: cached, scored, submitted, recommitted, reviewed, or blocked
+## Score Validation Defaults
 
-Append an event log for every submit or recommit attempt, including timestamp, score, result, retry count, and fallback path. Before a pause or report, verify row counts, unique identifiers, and unresolved review cases.
+- Zhixue subjective-question grading usually uses integer scores. Submit integer scores by default.
+- If the user-provided prompt, rubric, or official scoring standard includes decimal scores such as `0.5`, confirm the allowed score step before submitting decimals or changing the script.
+- Validate score bounds before any submit/recommit: each part must be within its ceiling, and the total must equal the accepted part-score sum.
 
-Do not rely on chat history as the source of truth for completion or reports.
+## Blank And Density Metrics
 
-## Student Roster And Feedback
+- `darkRatio` means the proportion of dark, ink-like pixels in the analyzed image or answer region after grayscale/threshold processing.
+- Lower `darkRatio` usually means less writing, but it is only a routing signal. It must not replace direct visual grading.
+- Calibrate blank thresholds from confirmed blank samples for the current scan style. Treat fallback thresholds such as `0.01` as conservative defaults only.
+- Any plausible relevant formula, diagram mark, variable relation, or subquestion attempt should route to grading or review rather than automatic blank handling.
 
-Use a student roster only when the user provides an authorized export or confirms the current authenticated Zhixue report page permits access. Keep real student names and admission-ticket data in the local run directory or user-provided workbook, not in `SKILL.md`, examples, or committed files.
+## Proven Live-Run Rules
 
-Recommended roster source:
+The following rules were repeatedly validated in real Zhixue grading runs and should be treated as default operating behavior unless the current task instructions explicitly override them:
 
-- local workbook or CSV with `准考证号`, `班级`, and `姓名`, such as a user-provided `学生信息.xlsx`
-- platform read-only report export from the current authenticated teacher account
+1. `Latest explicit user scoring rule overrides earlier rules.`
+   - If the user later refines a scoring split, a result-only rule, or a subquestion boundary rule, apply the new rule going forward and re-audit already graded papers that may be affected.
+2. `Keep one authoritative ledger.`
+   - Record every reviewed paper in a local ledger such as `manual_grades.tsv` with:
+     - `userCode`
+     - per-part scores
+     - total score
+     - one-line scoring reason
+   - Treat this ledger as the grading truth source for reports.
+3. `Before submit, summarize the subquestion rationale when the user asks for traceability.`
+   - For each paper, state a short `Q1/Q2/Q3` scoring reason first, then submit.
+4. `Separate "occupy" from "final grading" when throughput matters.`
+   - For high-volume runs, it is often faster to:
+     - batch occupy papers with `0`
+     - save `userCode + itemId + imagePath` into `pending_regrade.jsonl`
+     - score offline from cached images
+     - recommit the true score afterward
+5. `When review-list lookup fails, fall back to the original occupied itemId.`
+   - Some papers may disappear from `searchMarked` even though the original `itemId` still accepts recommit.
+   - In those cases, use the stored `itemId` from `pending_regrade.jsonl` or the event log.
+6. `Respect subquestion position integrity when the user requires it.`
+   - Do not move a correct equation from `(1)` to `(2)` or `(3)` unless the user explicitly allows cross-position credit.
+   - When the user says "write错位置不得分", enforce it retroactively as well.
+7. `Do not give result points for lucky answers built on wrong physics.`
+   - If the formula and process are wrong and the final result is only accidentally correct, do not keep the result score.
+8. `Award partial formula points even when the full subquestion is wrong.`
+   - If the user’s rubric splits a subquestion into multiple formula items, preserve any independently correct formula component such as:
+     - correct height difference only
+     - correct momentum relation only
+     - correct energy relation only
+9. `Prefer direct image reading over ad hoc OCR unless OCR quality is proven.`
+   - In live runs, weak OCR often costs more time than it saves.
+   - If the user explicitly says not to use Windows OCR, do not use it.
+10. `Do not show large volumes of images in chat when the user flags token/latency cost.`
+    - Use local contact sheets, local cache files, and short textual rationale instead.
 
-Before using a roster, verify:
+## Session Recovery And Concurrency
 
-1. Required columns are present: admission ticket number or `userNum`, class, and name.
-2. No required fields are blank.
-3. The roster has no duplicate admission ticket numbers.
-4. Roster count and class counts reconcile with the platform or the user's stated task scope.
+Session expiry detection:
 
-Join scoring rows to the roster by `userCode`, `userNum`, or `准考证号`. If a row cannot be matched, keep the stable paper id, set a `rosterMissing` or `needsRosterReview` flag, and do not invent class or name.
+- Treat HTTP `401`, `403`, redirects to login pages, HTML returned where JSON is expected, JSON decode failures, repeated unusable `topicInfo`, or explicit login-expired messages as session-expiry signals.
+- On session expiry, stop new submissions, checkpoint the ledger/event log/pending queue, report the last successful item, and ask the user to refresh login or provide a new authenticated session.
+- After session refresh, resume from the authoritative local queue. Do not re-fetch or re-score completed items unless reconciliation shows a mismatch.
+- Retry transient network errors with a small bounded retry count; do not loop indefinitely on authentication or task-identity errors.
 
-When per-student feedback is requested, add these fields to the ledger:
+Concurrency assumptions:
 
-- `admissionTicketNo`
-- `className`
-- `studentName`
-- `totalScore`
-- per-part scores when available
-- `oneSentenceFeedback`
+- Default assumption: single teacher/agent is grading the current question independently.
+- If the platform indicates conflict, already-submitted state, double-evaluation/arbitration, HTTP `409`, changed score after fetch, or an item owned by another reviewer, pause that item and log it as a review conflict.
+- Do not overwrite another grader's score through `recommit` unless the user explicitly confirms that the current task permits it.
+- For arbitration or double-marking workflows, prefer the official browser workflow or task-specific confirmation over blind batch recommit.
 
-The one-sentence feedback must be grounded in the visible answer and current rubric. It should name the main earned point or main fix, avoid unsupported personality judgments, and stay short enough to fit a spreadsheet cell. Do not let roster identity influence the score; names and classes are for matching, reporting, and targeted feedback only.
+## Reconciliation And Completion Checks
 
-## Blank Screening
+Use all three layers during close-out:
 
-Blank screening is a safety-sensitive optimization.
+1. `manual ledger`
+   - confirm row count, unique `userCode`, and final per-part totals
+2. `event log`
+   - verify every recommit and any direct-`itemId` fallback submissions
+3. `backend review list`
+   - verify total count and inspect pagination carefully
 
-1. Calibrate with multiple confirmed blank papers from the current scan style.
-2. Keep a review zone above the auto-blank threshold.
-3. Review any paper with plausible relevant marks, formulas, diagrams, variables, or answer attempts.
-4. Record the threshold and routing decision in the ledger.
+Important:
 
-If no calibration set exists, use direct visual review or a conservative fallback and document the uncertainty.
+- Zhixue review-list pagination may not be normal zero-based pagination.
+- Always verify actual `currentPage` semantics before crawling all pages.
+- If the backend list omits papers that were successfully recommitted, reconcile against:
+  - `events.jsonl`
+  - `pending_regrade.jsonl`
+  - the authoritative local ledger
 
-## Session Recovery
+Completion should only be claimed after:
 
-Treat these as session-expiry or task-identity signals:
+- no remaining papers in the authoritative local queue
+- no unresolved mismatch between ledger and successful commit events
+- no submitted-but-unconfirmed papers except cases explicitly documented as backend-list omissions with successful `itemId` submit/recommit events
+- report artifacts are generated if the user requested a report
 
-- HTTP `401` or `403`
-- redirect to a login page
-- HTML where JSON is expected
-- JSON decode failure
-- repeated missing or unusable current-paper payloads
-- explicit login-expired messages
+## Reporting Rules From Live Runs
 
-On expiry, stop new submissions, checkpoint the ledger and event log, report the last successful item, and ask the user to refresh the authenticated session. Resume from the authoritative local queue after a smoke test.
+When the user asks for a final report:
 
-## Reconciliation And Completion
+1. Generate the report from the authoritative ledger, not from memory.
+2. Keep the teacher-facing report concise and aimed at the subject teacher, not a technical audience. For physics grading tasks, assume the reader is a physics teacher.
+3. Include:
+   - scoring rules actually used
+   - later rule corrections
+   - score distribution
+   - common error patterns
+   - short lecture or remediation suggestions
+   - representative full-score, partial-score, sparse-answer, and zero-score examples
+4. Include concrete screenshots for typical answer examples, but never paste whole raw papers when a smaller crop is enough.
+5. Crop screenshots to the response area and shrink them for layout efficiency. Do not spend time on duplicate masking when the platform already hides identities; apply extra masking only when visible sensitive information remains or the user asks for it.
+6. Combine multiple typical examples side by side, label them clearly such as `Example 1`, `Example 2`, and caption each with its type, e.g. full-score standard answer, correct formula with calculation error, missing key equation, sparse answer, near-blank.
+7. Keep captions short; the report should help a physics teacher quickly prepare feedback, not read a long audit log.
+8. Put technical submission details, `itemId`, retry traces, and per-paper ledgers in appendices or separate logs, not in the main teacher-facing narrative.
+9. If exact totals are unavailable, label them as estimates.
+10. If exact totals are available from the ledger, state that explicitly.
+11. If the user asked for desktop delivery, output both `docx` and `pdf` when possible. Prefer available document/report-generation and PDF-rendering companion skills over hand-built formatting.
 
-Before claiming a batch is complete, compare:
+## Companion Skills And Capabilities
 
-1. Local ledger: row count, unique identifiers, final scores, review flags.
-2. Event log: successful submit/recommit records and failures.
-3. Zhixue review list or platform state: total count, pagination behavior, and score status.
+This skill works best when the agent also has access to companion skills or equivalent capabilities in these areas:
 
-Completion requires:
+1. `pdf-or-doc extraction`
+   - needed when the user uploads original papers, answer PDFs, or DOCX files instead of plain text
+2. `ocr-and-image-reading`
+   - needed to extract content from scanned papers and handwritten student responses
+3. `image-preprocessing`
+   - needed for denoise, crop, contrast adjustment, and orientation correction on poor scans
+4. `browser automation or session capture`
+   - needed to get authenticated cookies, referer, current page context, or operate the grading UI when API use is not enough
+5. `structured-output validation`
+   - needed to validate model JSON, enforce score ceilings, and block malformed submissions
+6. `logging-and-analytics`
+   - needed for score logs, audit reports, error buckets, and post-exam statistics
+7. `document/report generation`
+   - needed for teaching briefs, technical retrospectives, and group meeting materials
 
-- no remaining ungraded queue items
-- no unresolved submit/recommit failures
-- no unexplained ledger/platform mismatch
-- requested report artifacts generated from saved evidence
+If these skills do not exist as named skills in the current agent platform, the agent should still look for equivalent built-in capabilities or local scripts.
 
-If the platform review list appears inconsistent, rebuild the comparison from ledger and event records before changing scores or declaring unresolved cases.
+## Safety Rules
 
-## Teacher-Facing Reports
-
-Reports are for teachers, not for debugging the automation. Use teacher language in the main body and keep raw IDs, API details, and retry traces in appendices or separate files.
-
-Default report structure:
-
-1. `阅卷概况`: paper count, completion status, scoring source, reconciliation result.
-2. `题目特点与难点`: task-specific difficulty tied to the current question.
-3. `整体答题情况`: average, median, score bands, full-score and zero-score counts, per-part averages when available.
-4. `0分卷分析`: separate blank/no-valid-answer papers from written but invalid answers.
-5. `有分卷的共性错误`: common nonzero-paper errors in teacher-readable categories.
-6. `高分卷的共同特点`: patterns in strong responses.
-7. `教学建议与阅卷建议`: actionable teaching feedback and scoring cautions.
-8. `典型卷例`: readable representative images with score captions and concise reasons.
-
-Use large readable images for typical examples. Do not shrink handwriting evidence into unreadable thumbnails.
-
-For `.docx` reports, render-check representative pages. For LaTeX/PDF reports, compile with a real LaTeX engine when feasible and state any blocker if compilation cannot be completed.
+- Never hardcode the user's live cookies or session tokens into the skill files.
+- Calibrate blank thresholds from multiple confirmed blank papers before enabling auto-blanking.
+- Treat blank-paper screening as heuristic only.
+- Model scoring should return both score and confidence.
+- Treat Zhixue subjective scores as integer scores by default; ask the user to confirm before using decimal scores when the rubric includes decimals.
+- Pause and recover rather than pushing through when login/session state, task identity, or reviewer ownership becomes uncertain.
+- Use teacher-corrected samples to calibrate model prompts and confidence thresholds.
+- Expect occasional `topicInfo = null` responses and retry before failing.
+- Prefer exact score logs when the user asks for statistics; if no logs exist, label any ratio as an estimate.
 
 ## References
 
-Read these only when the current task needs the detail:
+Read these only when needed:
 
-- `references/model-scoring.md`: model scoring shape, confidence, and calibration.
-- `references/prompt-generation.md`: prompt-pack contents and review gate.
-- `references/grading-strategy.md`: end-to-end grading strategy, calibration, batching, audit, and close-out thinking.
-- `references/speed-accuracy-controls.md`: accuracy controls for higher-throughput runs.
-- `references/subject-scoring-defaults.md`: physics, math, chemistry, biology, humanities, language, and essay-style grading defaults.
+If a referenced file is missing in a copied skill package, do not chase nonexistent paths. Continue from the core rules in this `SKILL.md`, and note the missing reference only if it affects the task.
+
+- [references/workflow-retrospective.md](./references/workflow-retrospective.md)
+  Use when the user wants the full engineering replay of the grading optimization.
+- [references/teaching-analysis.md](./references/teaching-analysis.md)
+  Use when the user wants a group-facing teaching brief, common mistakes, or lesson implications.
+- [references/model-scoring.md](./references/model-scoring.md)
+  Use when the user wants the model-scoring workflow, prompt shape, or confidence routing rules.
+- [references/prompt-generation.md](./references/prompt-generation.md)
+  Use when the user wants to generate scoring rubrics and reusable prompt packs from uploaded materials.
+- [references/speed-accuracy-controls.md](./references/speed-accuracy-controls.md)
+  Use when the user wants the concrete controls that keep the workflow both fast and accurate.
+- [references/companion-skills.md](./references/companion-skills.md)
+  Use when the user wants to know what extra skills or capability modules should be available to the agent.
+- [references/exploration-path.md](./references/exploration-path.md)
+  Use when the user wants the practical exploration path from manual grading to backend-assisted automation.
+

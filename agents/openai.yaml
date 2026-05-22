@@ -1,7 +1,7 @@
 interface:
-  display_name: "Yuejuan Marking Workflow"
-  short_description: "Zhixue and web grading workflow."
-  default_prompt: "Use $zhixue-marking-workflow for Zhixue or similar web grading tasks: rubric setup, batch paper caching/scoring, submit or recommit, ledger recovery, reconciliation, and teacher reports."
+  display_name: "Zhixue Marking Workflow"
+  short_description: "Zhixue grading workflow with cache, ledger, and reports."
+  default_prompt: "Use $zhixue-marking-workflow for Zhixue teacher-side subjective-question grading with script/API batch grading, cache-ledger recovery, blank screening, recommit/review reconciliation, and concise teacher-facing reports."
 
 policy:
   allow_implicit_invocation: true
