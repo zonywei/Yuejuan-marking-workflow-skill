@@ -1,6 +1,6 @@
 ---
 name: zhixue-marking-workflow
-description: Use when working on Zhixue teacher-side subjective-question grading or adapting the same workflow to similar authenticated web grading platforms, including rubric preparation, backend workflow exploration, batch grading, AI draft scoring, ledger recovery, reconciliation, and teacher-facing reports.
+description: Use when the user is doing Zhixue/智学网 teacher-side subjective-question grading, web阅卷/改卷 on an authenticated grading platform, or tasks involving rubric-based marking, batch paper/image scoring, blank-paper handling, score 提交/重提, ledger recovery, reconciliation, or teacher reports.
 ---
 
 # Zhixue Marking Workflow
@@ -210,15 +210,46 @@ Calibrate thresholds from the current task's confirmed samples. Avoid freezing f
 Maintain one authoritative run ledger. It should include:
 
 - stable paper identifier, such as `userCode` or platform item id
+- roster identity when available: admission ticket number or `userNum`, class name, and student name from an authorized local roster export
 - image path and crop/contact-sheet path when used
 - per-part scores and total score
 - concise scoring reason
+- one-sentence student-facing or teacher-facing feedback when requested
 - confidence and review flag
 - action state: cached, scored, submitted, recommitted, reviewed, or blocked
 
 Append an event log for every submit or recommit attempt, including timestamp, score, result, retry count, and fallback path. Before a pause or report, verify row counts, unique identifiers, and unresolved review cases.
 
 Do not rely on chat history as the source of truth for completion or reports.
+
+## Student Roster And Feedback
+
+Use a student roster only when the user provides an authorized export or confirms the current authenticated Zhixue report page permits access. Keep real student names and admission-ticket data in the local run directory or user-provided workbook, not in `SKILL.md`, examples, or committed files.
+
+Recommended roster source:
+
+- local workbook or CSV with `准考证号`, `班级`, and `姓名`, such as a user-provided `学生信息.xlsx`
+- platform read-only report export from the current authenticated teacher account
+
+Before using a roster, verify:
+
+1. Required columns are present: admission ticket number or `userNum`, class, and name.
+2. No required fields are blank.
+3. The roster has no duplicate admission ticket numbers.
+4. Roster count and class counts reconcile with the platform or the user's stated task scope.
+
+Join scoring rows to the roster by `userCode`, `userNum`, or `准考证号`. If a row cannot be matched, keep the stable paper id, set a `rosterMissing` or `needsRosterReview` flag, and do not invent class or name.
+
+When per-student feedback is requested, add these fields to the ledger:
+
+- `admissionTicketNo`
+- `className`
+- `studentName`
+- `totalScore`
+- per-part scores when available
+- `oneSentenceFeedback`
+
+The one-sentence feedback must be grounded in the visible answer and current rubric. It should name the main earned point or main fix, avoid unsupported personality judgments, and stay short enough to fit a spreadsheet cell. Do not let roster identity influence the score; names and classes are for matching, reporting, and targeted feedback only.
 
 ## Blank Screening
 
